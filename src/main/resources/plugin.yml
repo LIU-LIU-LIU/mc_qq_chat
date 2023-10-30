@@ -1,0 +1,7 @@
+name: mc_qq_chat
+version: '${project.version}'
+main: cc.ahaly.mc.mc_qq_chat.bukkit.BukkitMain
+api-version: '1.20'
+author: AHA
+#softdepend:
+#  - dynmap

@@ -1,0 +1,2 @@
+log-level: FINEST
+logFile: "plugins/mc_qq_chat/run.log"

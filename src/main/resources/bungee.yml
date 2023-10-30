@@ -1,0 +1,4 @@
+name: mc_qq_chat
+version: '${project.version}'
+main: cc.ahaly.mc.mc_qq_chat.bungee.BungeeMain
+author: AHA
