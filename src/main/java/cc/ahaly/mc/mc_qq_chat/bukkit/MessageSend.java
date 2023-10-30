@@ -6,13 +6,11 @@ import cc.ahaly.mc.mc_qq_chat.util.SharedData;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import org.bukkit.Bukkit;
-import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.server.BroadcastMessageEvent;
-import static org.bukkit.Bukkit.getServer;
 
 import org.bukkit.plugin.Plugin;
 

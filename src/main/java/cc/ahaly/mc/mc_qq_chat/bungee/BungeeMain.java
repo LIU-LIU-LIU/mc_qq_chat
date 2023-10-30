@@ -11,7 +11,7 @@ public class BungeeMain extends Plugin implements Listener {
     public void onEnable() {
         // 注册插件消息通道
         getProxy().registerChannel(Const.PLUGIN_CHANNEL);
-        getProxy().getPluginManager().registerListener(this, new bungeeFun());
+        getProxy().getPluginManager().registerListener(this, new BungeeFun());
         LoggerUtil.info("mc_qq_chat插件已经在Bungee服务器上启用");
     }
 

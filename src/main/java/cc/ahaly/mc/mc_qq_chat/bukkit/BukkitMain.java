@@ -4,8 +4,6 @@ import cc.ahaly.mc.mc_qq_chat.util.Const;
 import cc.ahaly.mc.mc_qq_chat.util.LoggerUtil;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.dynmap.DynmapAPI;
-import org.dynmap.DynmapCommonAPIListener;
 
 import java.util.logging.Level;
 

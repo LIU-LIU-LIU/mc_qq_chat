@@ -13,7 +13,7 @@ import net.md_5.bungee.event.EventHandler;
 import java.util.Collection;
 
 
-public class bungeeFun implements Listener {
+public class BungeeFun implements Listener {
     // 根据 IP 地址获取服务器名称
     private String getSenderServerName(String ipAddress) {
         Collection<ServerInfo> servers = ProxyServer.getInstance().getServers().values();

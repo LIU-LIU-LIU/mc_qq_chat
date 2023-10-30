@@ -9,9 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.messaging.PluginMessageListener;
-import org.dynmap.DynmapAPI;
-import org.dynmap.DynmapCommonAPIListener;
-import org.dynmap.markers.MarkerAPI;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
