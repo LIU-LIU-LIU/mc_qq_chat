@@ -1,5 +1,7 @@
 package cc.ahaly.mc.mc_qq_chat.util.qqbot;
 
+import cc.ahaly.mc.mc_qq_chat.bungee.BungeeFun;
+import cc.ahaly.mc.mc_qq_chat.bungee.BungeeMain;
 import cc.ahaly.mc.mc_qq_chat.util.LoggerUtil;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -11,32 +13,33 @@ import org.json.simple.parser.ParseException;
 import java.net.URI;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class WebSocketApi {
 
-    private static String botToken = "Bot 102057759.lzuq9La1RqoX29wX5J9FY2Hhp4ax1ETI";
     private static WebSocketClient client; // 将 WebSocketClient 声明为类的成员变量
-    private static final  String intents = "MESSAGE_CREATE";         // 发送消息事件，代表频道内的全部消息，而不只是 at 机器人的消息。内容与 AT_MESSAGE_CREATE 相同 AT_MESSAGE_CREATE当收到@机器人的消息时
-
+    private static String botToken = null;
+    private static String intents = "MESSAGE_CREATE";         // 发送消息事件，
     private static Timer heartbeatTimer = null;//心跳定时任务
     private static String seq = null;//心跳d的值
     private static String session_id = null;
 
-    private static WebSocketCallback callback;
+    public static boolean isWebSocketConnected = false;
 
-    public static void setWebSocketCallback() {
-        WebSocketApi.callback = callback; // 设置回调接口
+    public WebSocketApi(String botToken, String intents) {
+        this.botToken = botToken;
+        this.intents = intents;
     }
 
     public static void connectWebSocket() {
         try {
-            client = new WebSocketClient(new URI(HttpApi.gateway())) {
+            HttpApi httpApi = new HttpApi(botToken);
+            client = new WebSocketClient(new URI(httpApi.gateway())) {
                 @Override
                 public void onOpen(ServerHandshake handshakedata) {
                     LoggerUtil.info("WebSocket连接已打开");
-                    if (callback != null) {
-                        callback.onWebSocketConnected();
-                    }
                 }
                 @Override
                 public void onMessage(String message) {
@@ -45,7 +48,6 @@ public class WebSocketApi {
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
                     LoggerUtil.info("WebSocket连接关闭");
-                    stopHeartbeatTask();
                 }
                 @Override
                 public void onError(Exception ex) {
@@ -58,24 +60,21 @@ public class WebSocketApi {
         }
     }
 
-
     public static void startHeartbeatTask(long heartbeatInterval) {
         if (heartbeatTimer != null) {
             return; // 如果定时任务已存在，不再创建新的
         }
-        LoggerUtil.info("心跳维持中...");
+        LoggerUtil.info("ws连接检查及心跳维持中...");
         heartbeatTimer = new Timer();
         heartbeatTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+                //如果链接存在则正常发送心跳，如果不存在则建立ws链接。
                 if (client != null && client.isOpen()) {
-                    if (seq == null) {
-                        // 第一次发送时，heartbeatData为null
-                        client.send("{'op': 1, 'd': null}");
-                    } else {
-                        // 后续根据接收到的消息的s字段的值来发送心跳
-                        client.send("{'op': 1, 'd': " + seq + "}");
-                    }
+                    client.send("{\"op\": 1, \"d\": " + seq + "}");
+                }else {
+                    //此定时任务只在第一次正确链接ws后才会启动，所以此处是为了其他未处理而意外导致ws链接中断的情况。
+                    connectWebSocket();
                 }
             }
         }, heartbeatInterval, heartbeatInterval);
@@ -112,6 +111,12 @@ public class WebSocketApi {
                     LoggerUtil.info("正在重新建立ws链接...");
                     reconnectWebSocket(); // 调用重连方法
                  break;
+                case 9://当identify或resume的时候，如果参数有错，服务端会返回该消息
+                    LoggerUtil.warning("参数有错，无法建立ws链接。");
+                    break;
+                case 11://当发送心跳成功之后，就会收到该消息
+                    LoggerUtil.fine("心跳回执 OpCode 11 Heartbeat ACK 消息");
+                    break;
                 default:
                     LoggerUtil.warning("未知的 op 类型: " + op);
                     break;
@@ -133,18 +138,32 @@ public class WebSocketApi {
                     JSONObject d = (JSONObject) json.get("d");
                     // 从 d 对象中获取 session_id 字段的值
                     session_id = (String) d.get("session_id");
+                    isWebSocketConnected = true;
                     break;
                 // 添加其他 op 的处理逻辑
-                case intents://代表收到订阅消息
-                    // 提取头像
-                    String avatar = (String) ((JSONObject) ((JSONObject) json.get("d")).get("author")).get("avatar");
-                    // 提取昵称
-                    String nick = (String) ((JSONObject) ((JSONObject) json.get("d")).get("member")).get("nick");
-                    // 提取发送时间
-                    String joinedAt = (String) ((JSONObject) ((JSONObject) json.get("d")).get("member")).get("joined_at");
-                    // 提取消息内容
-                    String content = (String) ((JSONObject) json.get("d")).get("content");
-                    LoggerUtil.fine("收到订阅事件:头像: " + avatar +" 昵称: " + nick+" 发送时间: " + joinedAt+" 消息内容: " + content);
+                case "MESSAGE_CREATE":
+                case "AT_MESSAGE_CREATE":
+                    // 消息创建或@消息创建的处理逻辑
+                    // 代表收到订阅消息
+                    // 来源频道
+                    String channel_id = (String) ((JSONObject) json.get("d")).get("channel_id");
+                    String ChannelName = HttpApi.getChannel(channel_id);
+                    //只接收指定频道的消息
+                    LoggerUtil.fine("|" +ChannelName + "==" + BungeeMain.channelName + "|");
+                    if (ChannelName.equals(BungeeMain.channelName)){
+                        //消息ID
+                        String message_id = (String) ((JSONObject) json.get("d")).get("id");
+                        // 提取头像
+                        String avatar = (String) ((JSONObject) ((JSONObject) json.get("d")).get("author")).get("avatar");
+                        // 提取昵称
+                        String nick = (String) ((JSONObject) ((JSONObject) json.get("d")).get("member")).get("nick");
+                        // 提取发送时间
+                        String joinedAt = (String) ((JSONObject) json.get("d")).get("timestamp");
+                        // 提取消息内容
+                        String content = (String) ((JSONObject) json.get("d")).get("content");
+                        LoggerUtil.fine("收到订阅事件:头像: " + avatar +" 昵称: " + nick+" 发送时间: " + joinedAt+" 消息内容: " + content);
+                        BungeeFun.sendMsgToMC(ChannelName, nick,avatar, content,joinedAt,message_id);
+                    }
                     break;
                 default:
                     LoggerUtil.warning("未知的事件类型: " + t);
@@ -204,18 +223,23 @@ public class WebSocketApi {
         LoggerUtil.fine("发送消息:"+ msg);
         client.send(msg);
     }
+
+    // 创建一个ScheduledExecutorService
+    static ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+
     public static void reconnectWebSocket() {
         if (client != null && client.isOpen()) {
             client.close(); // 关闭当前连接
         }
 
-        // 等待一段时间，然后重新连接
-        try {
-            Thread.sleep(3000);
-            connectWebSocket(); // 重新连接WebSocket
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        // 使用ScheduledExecutorService执行重新连接任务
+        executor.schedule(() -> connectWebSocket(), 3, TimeUnit.SECONDS);
     }
 
+    public static void stopWebSocket() {
+        if (client != null && client.isOpen()) {
+            client.close(); // 关闭当前连接
+            stopHeartbeatTask();
+        }
+    }
 }

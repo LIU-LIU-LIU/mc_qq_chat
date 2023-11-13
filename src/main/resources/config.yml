@@ -1,2 +1,13 @@
+#配置日志级别，可选的是info warning fine finest
 log-level: FINEST
 logFile: "plugins/mc_qq_chat/run.log"
+#机器人的令牌，格式是Bot APPID.Token
+botToken: "Bot 102.abcdxxxx"
+#如果机器人内有多个主频道，这里输入频道索引
+guildsIndex: 0
+#机器人主频道的下面的子频道名称
+channelName: "服务器内部聊天(与游戏内聊天同步)"
+#频道的加入链接，用于格式化消息时处理点击事件
+channelUrl: "https://pd.qq.com/s/8tjjog2zh"
+#推送消息事件，AT_MESSAGE_CREATE代表当收到@机器人的消息时;MESSAGE_CREATE代表频道内的全部消息，而不只是at 。
+intents: "MESSAGE_CREATE"

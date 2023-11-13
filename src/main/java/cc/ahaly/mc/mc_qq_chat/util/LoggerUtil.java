@@ -23,19 +23,19 @@ public class LoggerUtil {
     }
 
     public static void info(String message) {
-        logger.info(message);
+        logger.info("§3"+message);
     }
 
     public static void warning(String message) {
-        logger.warning(message);
+        logger.warning("§e" + message);
     }
 
     public static void fine(String message) {
-        logger.info(message);
-//调试临时禁用        logger.fine(message);
+//        logger.info("§a"+message);
+        logger.fine("§a"+message);
     }
 
     public static void finest(String message) {
-        logger.finest(message);
+        logger.finest("§a"+message);
     }
 }
