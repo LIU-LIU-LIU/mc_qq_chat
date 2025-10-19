@@ -40,12 +40,13 @@ public class MessageReceived implements PluginMessageListener {
             Component receivedMessage = GsonComponentSerializer.gson().deserialize(rawJsonStr);
 
             LoggerUtil.fine("子服通过PluginMessageListener收到PLUGIN_CHANNEL.SUB_PLUGIN_CHANNEL消息: " + rawJsonStr);
-            
+
+            SharedData.getInstance().setSharedVariable(true); // 设置通过插件本身发送广播事件标志
             // 向所有在线玩家发送消息
             for (Player tempPlayer : Bukkit.getOnlinePlayers()) {
-                SharedData.getInstance().setSharedVariable(true); // 设置通过插件本身发送广播事件标志
                 tempPlayer.sendMessage(receivedMessage);
             }
+            SharedData.getInstance().setSharedVariable(false); // 发送后重置状态
         }
     }
 }

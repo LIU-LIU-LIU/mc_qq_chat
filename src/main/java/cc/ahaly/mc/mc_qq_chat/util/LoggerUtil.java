@@ -20,7 +20,9 @@ public class LoggerUtil {
             
             FileHandler fileHandler = new FileHandler(logFile, true);
             fileHandler.setFormatter(new SimpleFormatter());
+            fileHandler.setLevel(Level.ALL); // 确保 FileHandler 记录所有级别的日志
             logger.addHandler(fileHandler);
+            logger.setUseParentHandlers(false); // 禁止输出到控制台
             logger.info("日志文件已设置: " + logFile);
         } catch (IOException e) {
             System.err.println("无法设置日志文件: " + logFile);
