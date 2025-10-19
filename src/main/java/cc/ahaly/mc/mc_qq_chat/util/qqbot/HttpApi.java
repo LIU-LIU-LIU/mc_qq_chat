@@ -41,6 +41,7 @@ public class HttpApi {
             connection.setRequestMethod(method);
 
             LoggerUtil.fine("Request Method: " + connection.getRequestMethod());
+            LoggerUtil.fine("Request URL: " + urlO.toString());
             LoggerUtil.fine("Request Headers: " + connection.getRequestProperties());
             if (method.equals("POST") && data.length > 0) {
                 LoggerUtil.fine("Request Body: " + data[0]);
@@ -52,6 +53,20 @@ public class HttpApi {
             }
 
 
+            // 检查响应码
+            int responseCode = connection.getResponseCode();
+            LoggerUtil.fine("Response Code: " + responseCode);
+            
+            if (responseCode != 200) {
+                LoggerUtil.warning("QQ API 返回错误码: " + responseCode);
+                LoggerUtil.warning("请求 URL: " + urlO.toString());
+                LoggerUtil.warning("可能原因: ");
+                LoggerUtil.warning("  - 401: Token 无效或过期");
+                LoggerUtil.warning("  - 403: 权限不足");
+                LoggerUtil.warning("  - 500: QQ 服务器内部错误");
+                return null;
+            }
+            
             // 获取返回的输入流
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             String inputLine;
@@ -65,6 +80,7 @@ public class HttpApi {
             in.close();
             value = content.toString();
         } catch (Exception e) {
+            LoggerUtil.warning("HTTP 请求失败: " + e.getMessage());
             e.printStackTrace();
         }
         LoggerUtil.fine("响应的消息是:"+ value);
@@ -72,21 +88,30 @@ public class HttpApi {
     }
 
     private static String jsonObj(String receive, String key){
+        if (receive == null) {
+            LoggerUtil.warning("无法解析 JSON: 响应内容为空");
+            return null;
+        }
         try {
             // 对返回的 JSON 字符串进行解析
             JSONParser parser = new JSONParser();
-            Object obj = parser.parse(receive.toString());
+            Object obj = parser.parse(receive);
             JSONObject json = (JSONObject) obj;
             String value = (String) json.get(key);
             LoggerUtil.fine(key + "值为: " + value);
             return value;
         } catch (ParseException e) {
+            LoggerUtil.warning("JSON 解析失败: " + e.getMessage());
             e.printStackTrace();
-            return null;
         }
+        return null;
     }
 
     public static String jsonArrayIndex(String receive, int index, String key) {
+        if (receive == null) {
+            LoggerUtil.warning("无法解析 JSON Array: 响应内容为空");
+            return null;
+        }
         try {
             // 对返回的 JSON 字符串进行解析
             JSONParser parser = new JSONParser();
@@ -97,12 +122,17 @@ public class HttpApi {
             LoggerUtil.fine(key + "值为: " + value);
             return value;
         } catch (Exception e) {
+            LoggerUtil.warning("JSON Array 解析失败: " + e.getMessage());
             e.printStackTrace();
-            return null;
         }
+        return null;
     }
 
     public static String jsonArrayName(String receive, String name, String key) {
+        if (receive == null) {
+            LoggerUtil.warning("无法解析 JSON Array: 响应内容为空");
+            return null;
+        }
         try {
             // 对返回的 JSON 字符串进行解析
             JSONParser parser = new JSONParser();
@@ -121,9 +151,10 @@ public class HttpApi {
             LoggerUtil.warning("未找到名称为 '" + name + "' 的项");
             return null;
         } catch (Exception e) {
+            LoggerUtil.warning("JSON Array 解析失败: " + e.getMessage());
             e.printStackTrace();
-            return null;
         }
+        return null;
     }
 
 

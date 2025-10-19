@@ -1,7 +1,5 @@
 package cc.ahaly.mc.mc_qq_chat.util.qqbot;
 
-import cc.ahaly.mc.mc_qq_chat.bungee.BungeeFun;
-import cc.ahaly.mc.mc_qq_chat.bungee.BungeeMain;
 import cc.ahaly.mc.mc_qq_chat.util.LoggerUtil;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -25,6 +23,7 @@ public class WebSocketApi {
     private static Timer heartbeatTimer = null;//心跳定时任务
     private static String seq = null;//心跳d的值
     private static String session_id = null;
+    private static ProxyAdapter proxyAdapter = null; // 代理适配器
 
     public static boolean isWebSocketConnected = false;
 
@@ -32,11 +31,34 @@ public class WebSocketApi {
         this.botToken = botToken;
         this.intents = intents;
     }
+    
+    public WebSocketApi(String botToken, String intents, ProxyAdapter adapter) {
+        this.botToken = botToken;
+        this.intents = intents;
+        this.proxyAdapter = adapter;
+    }
+    
+    public static void setProxyAdapter(ProxyAdapter adapter) {
+        proxyAdapter = adapter;
+    }
 
     public static void connectWebSocket() {
         try {
             HttpApi httpApi = new HttpApi(botToken);
-            client = new WebSocketClient(new URI(httpApi.gateway())) {
+            String gatewayUrl = httpApi.gateway();
+            
+            // 检查 gateway URL 是否为 null
+            if (gatewayUrl == null || gatewayUrl.isEmpty()) {
+                LoggerUtil.warning("无法获取 WebSocket Gateway URL");
+                LoggerUtil.warning("可能原因：");
+                LoggerUtil.warning("  1. QQ API 服务异常");
+                LoggerUtil.warning("  2. botToken 配置错误");
+                LoggerUtil.warning("  3. 网络连接问题");
+                LoggerUtil.warning("跨服聊天功能仍可正常使用，但无法同步到 QQ 频道");
+                return;
+            }
+            
+            client = new WebSocketClient(new URI(gatewayUrl)) {
                 @Override
                 public void onOpen(ServerHandshake handshakedata) {
                     LoggerUtil.info("WebSocket连接已打开");
@@ -148,9 +170,13 @@ public class WebSocketApi {
                     // 来源频道
                     String channel_id = (String) ((JSONObject) json.get("d")).get("channel_id");
                     String ChannelName = HttpApi.getChannel(channel_id);
+                    
+                    // 使用代理适配器获取频道名称
+                    String targetChannelName = proxyAdapter != null ? proxyAdapter.getChannelName() : "";
+                    
                     //只接收指定频道的消息
-                    LoggerUtil.fine("|" +ChannelName + "==" + BungeeMain.channelName + "|");
-                    if (ChannelName.equals(BungeeMain.channelName)){
+                    LoggerUtil.fine("|" +ChannelName + "==" + targetChannelName + "|");
+                    if (ChannelName.equals(targetChannelName)){
                         //消息ID
                         String message_id = (String) ((JSONObject) json.get("d")).get("id");
                         // 提取头像
@@ -162,7 +188,11 @@ public class WebSocketApi {
                         // 提取消息内容
                         String content = (String) ((JSONObject) json.get("d")).get("content");
                         LoggerUtil.fine("收到订阅事件:头像: " + avatar +" 昵称: " + nick+" 发送时间: " + joinedAt+" 消息内容: " + content);
-                        BungeeFun.sendMsgToMC(ChannelName, nick,avatar, content,joinedAt,message_id);
+                        
+                        // 使用代理适配器发送消息到Minecraft
+                        if (proxyAdapter != null) {
+                            proxyAdapter.sendMessageToMinecraft(ChannelName, nick, avatar, content, joinedAt, message_id);
+                        }
                     }
                     break;
                 default:

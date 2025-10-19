@@ -1,0 +1,9 @@
+{
+  "id": "mc_qq_chat",
+  "name": "mc_qq_chat",
+  "version": "2.0-SNAPSHOT",
+  "description": "MC QQ 频道聊天同步插件 - Velocity版",
+  "authors": ["ahaly"],
+  "main": "cc.ahaly.mc.mc_qq_chat.velocity.VelocityMain"
+}
+

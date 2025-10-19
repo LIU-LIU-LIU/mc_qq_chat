@@ -11,10 +11,19 @@ public class LoggerUtil {
 
     public static void setupLogger(String logFile) {
         try {
+            // 创建目录（如果不存在）
+            java.io.File file = new java.io.File(logFile);
+            java.io.File parentDir = file.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+            
             FileHandler fileHandler = new FileHandler(logFile, true);
             fileHandler.setFormatter(new SimpleFormatter());
             logger.addHandler(fileHandler);
+            logger.info("日志文件已设置: " + logFile);
         } catch (IOException e) {
+            System.err.println("无法设置日志文件: " + logFile);
             e.printStackTrace();
         }
     }
